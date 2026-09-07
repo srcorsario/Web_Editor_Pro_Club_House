@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Manager - Web Editor Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Montserrat', sans-serif; padding: 15px; margin: 0; }
+        .admin-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+        .admin-card h2 { font-size: 1.2rem; font-weight: 700; margin: 0 0 20px 0; color: #fbbf24; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-input { width: 100%; background-color: #0f172a; border: 1px solid #475569; color: #f8fafc; border-radius: 6px; padding: 10px 12px; font-family: 'Montserrat', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.2s; box-shadow: none; box-sizing: border-box; }
+        .form-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        .form-checkbox-wrapper { display: flex; align-items: center; gap: 10px; }
+        .form-checkbox { width: 20px; height: 20px; accent-color: #22c55e; cursor: pointer; }
+        .form-textarea { width: 100%; min-height: 80px; background-color: #0f172a; border: 1px solid #475569; color: #f8fafc; border-radius: 6px; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; resize: vertical; outline: none; box-sizing: border-box; }
+        .form-textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        
+        .btn-save { padding: 14px; background-color: #22c55e; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background-color 0.2s; }
+        .btn-save:hover { background-color: #16a34a; }
+        .btn-copy { padding: 14px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background-color 0.2s; }
+        .btn-copy:hover { background-color: #2563eb; }
+
+        .section-divider { border-top: 1px solid #334155; margin: 30px 0; }
+        .section-title { font-size: 1rem; font-weight: 700; color: #60a5fa; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .section-icon { font-size: 1.2rem; }
+
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .admin-col-left { border-right: 1px solid #334155; padding-right: 24px; }
+        .admin-col-right { padding-left: 24px; }
+        .admin-full { grid-column: 1 / -1; border-top: 1px solid #334155; padding-top: 24px; margin-top: 10px; }
+        
+        @media (max-width: 768px) {
+            .admin-grid { grid-template-columns: 1fr; }
+            .admin-col-left, .admin-col-right { border: none; padding: 0; }
+            .admin-full { padding-top: 10px; margin-top: 0; border-top: none; }
+        }
+        
+        .radio-state-group { display: flex; gap: 20px; align-items: center; }
+        .radio-state-label { color: #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 500; }
+
+        /* Estilos para input con botón integrado a la derecha */
+        .asset-input-wrapper { position: relative; width: 100%; }
+        .asset-input-wrapper .form-input { padding-right: 42px; }
+        .btn-preview-asset {
+            position: absolute; right: 1px; top: 1px; bottom: 1px; width: 40px;
+            background: transparent; border: none; color: #64748b; 
+            cursor: pointer; border-radius: 0 6px 6px 0;
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 1.1rem; transition: color 0.2s, background 0.2s;
+        }
+        .btn-preview-asset:hover { color: #f8fafc; background: rgba(255,255,255,0.05); }
+
+        /* Estilos para el modal superficial de previsualización */
+        .img-preview-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.7); z-index: 10000; 
+            display: none; justify-content: center; align-items: center; 
+            backdrop-filter: blur(4px);
+        }
+        .img-preview-box { 
+            background: #1e293b; padding: 12px; border-radius: 12px; 
+            max-width: 320px; max-height: 320px; width: 90%; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
+            position: relative; border: 1px solid #334155;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .img-preview-box img { 
+            max-width: 100%; max-height: 280px; display: block; 
+            border-radius: 6px; object-fit: contain;
+        }
+        .img-preview-error {
+            color: #f87171; font-size: 0.85rem; text-align: center; 
+            word-break: break-all; padding: 20px; display: none;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .img-preview-close { 
+            position: absolute; top: -10px; right: -10px; 
+            background: #ef4444; color: white; border: 2px solid #0f172a;
+            border-radius: 50%; width: 26px; height: 26px; 
+            font-size: 14px; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; transition: background 0.2s;
+        }
+        .img-preview-close:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; margin: 0 auto;">
+        <div class="admin-card">
+            <h2>⚙️ Config Manager</h2>
+            <div id="status-admin" style="margin-bottom: 20px; text-align: center; font-weight: 600; color: #22c55e;">Cargando configuración actual...</div>
+            
+            <form id="config-form" style="display: none;">
+                <div class="admin-grid">
+                    <!-- COLUMNA IZQUIERDA: RESTAURANTE 001 -->
+                    <div class="admin-col-left">
+                        <div class="section-title"><span class="section-icon">🏢</span> <span id="title-rg" style="font-size: 0.95rem;">restaurante001</span></div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <div class="radio-state-group">
+                                <label class="radio-state-label"><input type="radio" name="state-restaurante001" value="true" class="form-checkbox"> Activado</label>
+                                <label class="radio-state-label"><input type="radio" name="state-restaurante001" value="false" class="form-checkbox"> Desactivado</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Alias Visual</label>
+                            <input type="text" id="cfg-alias-restaurante001" class="form-input" placeholder="Ej: Roland Garros">
+                        </div>
+
+                        <div class="section-title" style="margin-top:20px; font-size: 0.85rem;"><span class="section-icon">🌐</span> URLs de Red</div>
+                        <div class="form-group">
+                            <label class="form-label">CSV URL</label>
+                            <textarea id="cfg-csv-restaurante001" class="form-textarea" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Web App URL</label>
+                            <textarea id="cfg-webapp-restaurante001" class="form-textarea" rows="2"></textarea>
+                        </div>
+
+                        <div class="section-title" style="margin-top:20px; font-size: 0.85rem;"><span class="section-icon">🖼️</span> Assets</div>
+                        <div class="form-group">
+                            <label class="form-label">Logo (Solo nombre)</label>
+                            <div class="asset-input-wrapper">
+                                <input type="text" id="cfg-logo-restaurante001" class="form-input" placeholder="Ej: logo_web01.png">
+                                <button type="button" class="btn-preview-asset" onclick="previewAsset('cfg-logo-restaurante001')">📷</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">QR Default (Solo nombre)</label>
+                            <div class="asset-input-wrapper">
+                                <input type="text" id="cfg-qr-restaurante001-default" class="form-input" placeholder="Ej: qr-web01-02.png">
+                                <button type="button" class="btn-preview-asset" onclick="previewAsset('cfg-qr-restaurante001-default')">📷</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">QR Mod (Solo nombre)</label>
+                            <div class="asset-input-wrapper">
+                                <input type="text" id="cfg-qr-restaurante001-mod" class="form-input" placeholder="Ej: qr-web01-01.png">
+                                <button type="button" class="btn-preview-asset" onclick="previewAsset('cfg-qr-restaurante001-mod')">📷</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COLUMNA DERECHA: RESTAURANTE 002 -->
+                    <div class="admin-col-right">
+                        <div class="section-title"><span class="section-icon">🏢</span> <span id="title-usopen" style="font-size: 0.95rem;">restaurante002</span></div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <div class="radio-state-group">
+                                <label class="radio-state-label"><input type="radio" name="state-restaurante002" value="true" class="form-checkbox"> Activado</label>
+                                <label class="radio-state-label"><input type="radio" name="state-restaurante002" value="false" class="form-checkbox"> Desactivado</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Alias Visual</label>
+                            <input type="text" id="cfg-alias-restaurante002" class="form-input" placeholder="Ej: US Open">
+                        </div>
+
+                        <div class="section-title" style="margin-top:20px; font-size: 0.85rem;"><span class="section-icon">🌐</span> URLs de Red</div>
+                        <div class="form-group">
+                            <label class="form-label">CSV URL</label>
+                            <textarea id="cfg-csv-restaurante002" class="form-textarea" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Web App URL</label>
+                            <textarea id="cfg-webapp-restaurante002" class="form-textarea" rows="2"></textarea>
+                        </div>
+
+                        <div class="section-title" style="margin-top:20px; font-size: 0.85rem;"><span class="section-icon">🖼️</span> Assets</div>
+                        <div class="form-group">
+                            <label class="form-label">Logo (Solo nombre)</label>
+                            <div class="asset-input-wrapper">
+                                <input type="text" id="cfg-logo-restaurante002" class="form-input" placeholder="Ej: logo_web02.png">
+                                <button type="button" class="btn-preview-asset" onclick="previewAsset('cfg-logo-restaurante002')">📷</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">QR Default (Solo nombre)</label>
+                            <div class="asset-input-wrapper">
+                                <input type="text" id="cfg-qr-restaurante002-default" class="form-input" placeholder="Ej: qr-web02-01.png">
+                                <button type="button" class="btn-preview-asset" onclick="previewAsset('cfg-qr-restaurante002-default')">📷</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">QR Mod (Solo nombre)</label>
+                            <div class="asset-input-wrapper">
+                                <input type="text" id="cfg-qr-restaurante002-mod" class="form-input" placeholder="Ej: qr-web02-02.png">
+                                <button type="button" class="btn-preview-asset" onclick="previewAsset('cfg-qr-restaurante002-mod')">📷</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN INFERIOR CENTRADA: GLOBAL -->
+                    <div class="admin-full">
+                        <div class="section-title"><span class="section-icon">🖼️</span> Rutas Globales</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Ruta Base de Imágenes</label>
+                                <input type="text" id="cfg-path-imagenes" class="form-input" placeholder="Ej: imagenes/imagenes/">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Ruta de Alérgenos</label>
+                                <input type="text" id="cfg-path-alergenos" class="form-input" placeholder="Ej: imagenes/alergenos/">
+                            </div>
+                        </div>
+
+                        <div class="section-divider"></div>
+                        <div class="section-title"><span class="section-icon">🧠</span> Inteligencia Artificial para la traducción de platos (Gemini)</div>
+                        <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 15px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Gemini Endpoint URL</label>
+                                <textarea id="cfg-gemini-url" class="form-textarea" rows="2"></textarea>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Lineas de platos simultaneas a traducir</label>
+                                <input type="number" id="cfg-lote-size" class="form-input" min="1" max="100" step="1">
+                            </div>
+                        </div>
+
+                        <div class="section-divider"></div>
+                        <div class="section-title"><span class="section-icon">⏱️</span> Tiempos del Sistema</div>
+                        <div class="form-group" style="max-width: 300px;">
+                            <label class="form-label">Ventana de Consistencia (ms)</label>
+                            <input type="number" id="cfg-consistency-window" class="form-input" min="10000" max="600000" step="1000" placeholder="Ej: 180000">
+                        </div>
+
+                        <div class="section-divider"></div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                            <button type="button" class="btn-copy" onclick="handleCopyAdmin()">📋 Copiar Código al Portapapeles</button>
+                            <button type="button" class="btn-save" onclick="handleSaveAdmin()">💾 Descargar Local (Backup)</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal superficial para previsualizar imágenes -->
+    <div id="img-preview-overlay" class="img-preview-overlay" onclick="closePreview()">
+        <div class="img-preview-box" onclick="event.stopPropagation()">
+            <button class="img-preview-close" onclick="closePreview()">✕</button>
+            <img id="img-preview-src" src="" alt="Preview">
+            <div id="img-preview-error" class="img-preview-error"></div>
+        </div>
+    </div>
+
+    <!-- Inyección directa de config.js -->
+    <script src="config.js"></script>
+
+    <script>
+        const CONFIG_MAP = [
+            { id: 'cfg-alias-restaurante001', key: 'MODOS_ALIAS.restaurante001', type: 'string' },
+            { id: 'cfg-alias-restaurante002', key: 'MODOS_ALIAS.restaurante002', type: 'string' },
+            { id: 'cfg-csv-restaurante001', key: 'CSV_URL_RESTAURANTE001', type: 'string' },
+            { id: 'cfg-webapp-restaurante001', key: 'WEB_APP_URL_RESTAURANTE001', type: 'string' },
+            { id: 'cfg-csv-restaurante002', key: 'CSV_URL_RESTAURANTE002', type: 'string' },
+            { id: 'cfg-webapp-restaurante002', key: 'WEB_APP_URL_RESTAURANTE002', type: 'string' },
+            { id: 'cfg-gemini-url', key: 'GEMINI_ENDPOINT_URL', type: 'string' },
+            { id: 'cfg-lote-size', key: 'TRADUCCION_TAMANO_LOTE', type: 'number' },
+            { id: 'cfg-path-imagenes', key: 'PATH_IMAGENES', type: 'string' },
+            { id: 'cfg-path-alergenos', key: 'PATH_ALERGENOS', type: 'string' },
+            { id: 'cfg-logo-restaurante001', key: 'LOGO_RESTAURANTE001', type: 'string' },
+            { id: 'cfg-logo-restaurante002', key: 'LOGO_RESTAURANTE002', type: 'string' },
+            { id: 'cfg-qr-restaurante001-default', key: 'QR_RESTAURANTE001_DEFAULT', type: 'string' },
+            { id: 'cfg-qr-restaurante001-mod', key: 'QR_RESTAURANTE001_MOD', type: 'string' },
+            { id: 'cfg-qr-restaurante002-default', key: 'QR_RESTAURANTE002_DEFAULT', type: 'string' },
+            { id: 'cfg-qr-restaurante002-mod', key: 'QR_RESTAURANTE002_MOD', type: 'string' },
+            { id: 'cfg-consistency-window', key: 'CONSISTENCY_WINDOW_MS', type: 'number' }
+        ];
+
+        let configSnapshot = {};
+
+        function cleanAssetName(fullString, basePath) {
+            if (!fullString) return "";
+            let clean = fullString.trim();
+            if (basePath && clean.startsWith(basePath)) {
+                clean = clean.substring(basePath.length);
+            }
+            return clean;
+        }
+
+        // Función para abrir el modal superficial de preview
+        function previewAsset(inputId) {
+            const inputEl = document.getElementById(inputId);
+            const pathBaseEl = document.getElementById('cfg-path-imagenes');
+            const overlay = document.getElementById('img-preview-overlay');
+            const previewImg = document.getElementById('img-preview-src');
+            const errorTxt = document.getElementById('img-preview-error');
+            
+            if (!inputEl || !pathBaseEl || !overlay || !previewImg) return;
+            
+            const filename = inputEl.value.trim();
+            const basePath = pathBaseEl.value.trim();
+            
+            if (!filename) return;
+            
+            const fullPath = basePath + filename;
+            
+            // Resetear estado visual
+            previewImg.style.display = 'none';
+            if (errorTxt) errorTxt.style.display = 'none';
+            
+            // Control de carga y errores
+            previewImg.onload = function() {
+                previewImg.style.display = 'block';
+                if (errorTxt) errorTxt.style.display = 'none';
+            };
+            previewImg.onerror = function() {
+                previewImg.style.display = 'none';
+                if (errorTxt) {
+                    errorTxt.innerText = "No se encontró la imagen:\n" + fullPath;
+                    errorTxt.style.display = 'block';
+                }
+            };
+            
+            previewImg.src = fullPath;
+            overlay.style.display = 'flex';
+        }
+
+        // Función para cerrar el modal
+        function closePreview() {
+            const overlay = document.getElementById('img-preview-overlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        function initAdmin() {
+            const statusDiv = document.getElementById('status-admin');
+            const form = document.getElementById('config-form');
+            
+            if (!form) {
+                if (statusDiv) statusDiv.innerText = "❌ Error crítico: No se encontró el formulario.";
+                return;
+            }
+
+            try {
+                if (typeof RESTAURANTES_CONFIG === 'undefined') throw new Error("No se encontró la variable RESTAURANTES_CONFIG. ¿Está roto el archivo config.js?");
+                
+                const restConfig = {
+                    restaurante001: { enabled: RESTAURANTES_CONFIG.restaurante001.enabled },
+                    restaurante002: { enabled: RESTAURANTES_CONFIG.restaurante002.enabled }
+                };
+                configSnapshot['RESTAURANTES_CONFIG'] = restConfig;
+                
+                const rgRadioOn = document.querySelector('input[name="state-restaurante001"][value="true"]');
+                const rgRadioOff = document.querySelector('input[name="state-restaurante001"][value="false"]');
+                if (rgRadioOn) rgRadioOn.checked = restConfig.restaurante001.enabled;
+                if (rgRadioOff) rgRadioOff.checked = !restConfig.restaurante001.enabled;
+
+                const usRadioOn = document.querySelector('input[name="state-restaurante002"][value="true"]');
+                const usRadioOff = document.querySelector('input[name="state-restaurante002"][value="false"]');
+                if (usRadioOn) usRadioOn.checked = restConfig.restaurante002.enabled;
+                if (usRadioOff) usRadioOff.checked = !restConfig.restaurante002.enabled;
+
+                configSnapshot['MODOS_ALIAS'] = { ...MODOS_ALIAS };
+
+                configSnapshot['CSV_URL_RESTAURANTE001'] = CSV_URL_RESTAURANTE001;
+                configSnapshot['CSV_URL_RESTAURANTE002'] = CSV_URL_RESTAURANTE002;
+                configSnapshot['WEB_APP_URL_RESTAURANTE001'] = WEB_APP_URL_RESTAURANTE001;
+                configSnapshot['WEB_APP_URL_RESTAURANTE002'] = WEB_APP_URL_RESTAURANTE002;
+
+                configSnapshot['GEMINI_ENDPOINT_URL'] = GEMINI_ENDPOINT_URL;
+                configSnapshot['TRADUCCION_TAMANO_LOTE'] = TRADUCCION_TAMANO_LOTE;
+
+                configSnapshot['PATH_IMAGENES'] = PATH_IMAGENES;
+                configSnapshot['PATH_ALERGENOS'] = PATH_ALERGENOS;
+                
+                configSnapshot['LOGO_RESTAURANTE001'] = cleanAssetName(LOGO_RESTAURANTE001, PATH_IMAGENES);
+                configSnapshot['LOGO_RESTAURANTE002'] = cleanAssetName(LOGO_RESTAURANTE002, PATH_IMAGENES);
+                configSnapshot['QR_RESTAURANTE001_DEFAULT'] = cleanAssetName(QR_RESTAURANTE001_DEFAULT, PATH_IMAGENES);
+                configSnapshot['QR_RESTAURANTE001_MOD'] = cleanAssetName(QR_RESTAURANTE001_MOD, PATH_IMAGENES);
+                configSnapshot['QR_RESTAURANTE002_DEFAULT'] = cleanAssetName(QR_RESTAURANTE002_DEFAULT, PATH_IMAGENES);
+                configSnapshot['QR_RESTAURANTE002_MOD'] = cleanAssetName(QR_RESTAURANTE002_MOD, PATH_IMAGENES);
+
+                configSnapshot['CONSISTENCY_WINDOW_MS'] = CONSISTENCY_WINDOW_MS;
+
+                CONFIG_MAP.forEach(item => {
+                    const el = document.getElementById(item.id);
+                    if (el) {
+                        if (item.type === 'number') {
+                            el.value = configSnapshot[item.key];
+                        } else if (item.type === 'string') {
+                            el.value = configSnapshot[item.key] || "";
+                        }
+                    }
+                });
+
+                const aliasRG = configSnapshot['MODOS_ALIAS'].restaurante001 || 'Sin Alias';
+                const aliasUS = configSnapshot['MODOS_ALIAS'].restaurante002 || 'Sin Alias';
+                
+                const titleRG = document.getElementById('title-rg');
+                if (titleRG) titleRG.innerText = `restaurante001: "${aliasRG}"`;
+                
+                const titleUS = document.getElementById('title-usopen');
+                if (titleUS) titleUS.innerText = `restaurante002: "${aliasUS}"`;
+
+                if (statusDiv) statusDiv.innerText = "✅ Configuración cargada. Modifica los campos y elige cómo guardar.";
+                if (form) form.style.display = 'block';
+            } catch (err) {
+                console.error("[Admin] Error cargando config.js:", err);
+                if (statusDiv) statusDiv.innerText = "❌ Error al leer config.js: " + err.message;
+            }
+        }
+
+        function generateConfigCode() {
+            CONFIG_MAP.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (!el) return;
+                if (item.type === 'number') configSnapshot[item.key] = parseFloat(el.value) || 0;
+                else if (item.type === 'string') configSnapshot[item.key] = el.value;
+            });
+
+            const rgRadio = document.querySelector('input[name="state-restaurante001"]:checked');
+            configSnapshot['RESTAURANTES_CONFIG'].restaurante001.enabled = (rgRadio && rgRadio.value === 'true');
+
+            const usRadio = document.querySelector('input[name="state-restaurante002"]:checked');
+            configSnapshot['RESTAURANTES_CONFIG'].restaurante002.enabled = (usRadio && usRadio.value === 'true');
+
+            const pathBase = configSnapshot['PATH_IMAGENES'] || '';
+
+            let output = `// --- config.js ---\n`;
+            output += `// NUEVO: Registro de versión del archivo\n`;
+            output += `window.APP_VERSIONS = window.APP_VERSIONS || {};\n`;
+            output += `window.APP_VERSIONS.config = '3.0.0'; // Incrementado por modificación desde Admin Tool\n\n\n`;
+
+            output += `// =====================================================================\n`;
+            output += `// NUEVO: SISTEMA DE ENABLE/DISABLE DE RESTAURANTES (Desacoplamiento Visual)\n`;
+            output += `// Activo: { enabled: true } - Desactivado: { enabled: false }\n`;
+            output += `const RESTAURANTES_CONFIG = ${JSON.stringify(configSnapshot['RESTAURANTES_CONFIG'], null, 4)};\n\n`;
+            output += `// NUEVO: Exposición global para que index.html pueda ocultar las pestañas\n`;
+            output += `window.RESTAURANTES_CONFIG = RESTAURANTES_CONFIG;\n\n`;
+            output += `// NUEVO: Función para comprobar si un restaurante está habilitado en la web antes de cargarlo\n`;
+            output += `function isRestauranteA(modoInterno) {\n`;
+            output += `    if (!modoInterno) return false;\n`;
+            output += `    const config = RESTAURANTES_CONFIG[modoInterno];\n`;
+            output += `    return config ? config.enabled : false;\n`;
+            output += `}\n\n`;
+
+            output += `// =====================================================================\n`;
+            output += `// NUEVO: SISTEMA DE ALIAS DE MARCA (Desacoplamiento Visual)\n`;
+            output += `const MODOS_ALIAS = ${JSON.stringify(configSnapshot['MODOS_ALIAS'], null, 4)};\n\n`;
+            output += `// NUEVO: Función helper para obtener el nombre visual seguro\n`;
+            output += `function getModoAlias(modoInterno) {\n`;
+            output += `    if (typeof modoInterno === 'undefined' || modoInterno === null) return '';\n`;
+            output += `    return MODOS_ALIAS[modoInterno] || modoInterno;\n`;
+            output += `}\n\n`;
+
+            output += `// =====================================================================\n`;
+            output += `// CONFIGURACIÓN DE REDES (Google Sheets & Web Apps)\n\n`;
+            output += `// CONFIGURACION restaurante001\n`;
+            output += `const CSV_URL_RESTAURANTE001 = '${configSnapshot['CSV_URL_RESTAURANTE001']}';\n`;
+            output += `const WEB_APP_URL_RESTAURANTE001 = '${configSnapshot['WEB_APP_URL_RESTAURANTE001']}';\n\n`;
+            output += `// CONFIGURACION restaurante002\n`;
+            output += `const CSV_URL_RESTAURANTE002 = '${configSnapshot['CSV_URL_RESTAURANTE002']}';\n`;
+            output += `const WEB_APP_URL_RESTAURANTE002 = '${configSnapshot['WEB_APP_URL_RESTAURANTE002']}';\n\n`;
+            output += `// MODIFICADO: Función auxiliar pura. Recibe el modo explícitamente.\n`;
+            output += `function getWebAppUrl(modo) {\n`;
+            output += `    if (modo === 'restaurante002') {\n`;
+            output += `        return WEB_APP_URL_RESTAURANTE002;\n`;
+            output += `    }\n`;
+            output += `    return WEB_APP_URL_RESTAURANTE001;\n`;
+            output += `}\n\n`;
+            output += `// MODIFICADO: Función auxiliar pura. Recibe el modo explícitamente.\n`;
+            output += `function getCsvUrl(modo) {\n`;
+            output += `    if (modo === 'restaurante002') {\n`;
+            output += `        return CSV_URL_RESTAURANTE002;\n`;
+            output += `    }\n`;
+            output += `    return CSV_URL_RESTAURANTE001;\n`;
+            output += `}\n\n`;
+
+            output += `// =====================================================================\n`;
+            output += `// NUEVO: CONFIGURACIÓN DE INTELIGENCIA ARTIFICIAL (Gemini)\n`;
+            output += `// NUEVO: Endpoint centralizado del modelo de IA. \n`;
+            output += `const GEMINI_ENDPOINT_URL = "${configSnapshot['GEMINI_ENDPOINT_URL']}";\n\n`;
+            output += `// NUEVO: Cantidad de filas que se envían en cada petición a la IA durante la traducción masiva.\n`;
+            output += `const TRADUCCION_TAMANO_LOTE = ${configSnapshot['TRADUCCION_TAMANO_LOTE']};\n\n`;
+
+            output += `// =====================================================================\n`;
+            output += `// NUEVO: CONFIGURACIÓN CENTRALIZADA DE ASSETS (Rutas e Imágenes)\n`;
+            output += `// NUEVO: Path base general para imágenes y recursos estáticos\n`;
+            output += `const PATH_IMAGENES = '${configSnapshot['PATH_IMAGENES']}';\n`;
+            output += `// MODIFICADO: Path específico para los iconos de alérgenos\n`;
+            output += `const PATH_ALERGENOS = '${configSnapshot['PATH_ALERGENOS']}';\n\n`;
+            output += `// Logos Principales (Header del Editor)\n`;
+            output += `// NOTA: El nombre físico de la variable se mantiene LOGO_RESTAURANTE001 para no tener que renombrar archivos físicos\n`;
+            output += `const LOGO_RESTAURANTE001 = PATH_IMAGENES + '${cleanAssetName(configSnapshot['LOGO_RESTAURANTE001'], pathBase)}';\n`;
+            output += `const LOGO_RESTAURANTE002 = PATH_IMAGENES + '${cleanAssetName(configSnapshot['LOGO_RESTAURANTE002'], pathBase)}';\n\n`;
+            output += `// Códigos QR restaurante001\n`;
+            output += `const QR_RESTAURANTE001_DEFAULT = PATH_IMAGENES + '${cleanAssetName(configSnapshot['QR_RESTAURANTE001_DEFAULT'], pathBase)}';\n`;
+            output += `const QR_RESTAURANTE001_MOD = PATH_IMAGENES + '${cleanAssetName(configSnapshot['QR_RESTAURANTE001_MOD'], pathBase)}';\n\n`;
+            output += `// Códigos QR restaurante002\n`;
+            output += `const QR_RESTAURANTE002_DEFAULT = PATH_IMAGENES + '${cleanAssetName(configSnapshot['QR_RESTAURANTE002_DEFAULT'], pathBase)}';\n`;
+            output += `const QR_RESTAURANTE002_MOD = PATH_IMAGENES + '${cleanAssetName(configSnapshot['QR_RESTAURANTE002_MOD'], pathBase)}';\n\n`;
+
+            output += `// =====================================================================\n`;
+            output += `// NUEVO: CONFIGURACIÓN DE TIEMPOS DEL SISTEMA\n`;
+            output += `// Ventana de tiempo en milisegundos donde el sistema asume que Google Sheets \n`;
+            output += `// podría estar desactualizado tras un guardado (Client-Side Optimistic Lock)\n`;
+            output += `const CONSISTENCY_WINDOW_MS = ${configSnapshot['CONSISTENCY_WINDOW_MS']};\n`;
+
+            return output;
+        }
+
+        function handleSaveAdmin() {
+            const statusDiv = document.getElementById('status-admin');
+            try {
+                const output = generateConfigCode();
+                const blob = new Blob([output], { type: 'application/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                if (a) {
+                    a.href = url;
+                    a.download = 'config.js';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+                URL.revokeObjectURL(url);
+                if (statusDiv) statusDiv.innerText = "✅ ¡Descarga completada! Reemplaza el archivo config.js en tu proyecto.";
+            } catch (err) {
+                console.error("[Admin] Error generando archivo:", err);
+                if (statusDiv) statusDiv.innerText = "❌ Error al generar el archivo. Revisa la consola.";
+            }
+        }
+
+        function handleCopyAdmin() {
+            const statusDiv = document.getElementById('status-admin');
+            try {
+                const output = generateConfigCode();
+                navigator.clipboard.writeText(output).then(() => {
+                    if (statusDiv) statusDiv.innerText = "✅ ¡Código copiado al portapapeles!";
+                }).catch(err => {
+                    const textarea = document.createElement('textarea');
+                    if (textarea) {
+                        textarea.value = output;
+                        textarea.style.position = "fixed";
+                        textarea.style.left = "-999999px";
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        try {
+                            document.execCommand('copy');
+                            if (statusDiv) statusDiv.innerText = "✅ ¡Código copiado al portapapeles (Fallback)!";
+                        } catch (e) {
+                            if (statusDiv) statusDiv.innerText = "❌ Tu navegador bloqueó el acceso al portapapeles.";
+                        }
+                        document.body.removeChild(textarea);
+                    }
+                });
+            } catch (err) {
+                console.error("[Admin] Error copiando:", err);
+                if (statusDiv) statusDiv.innerText = "❌ Error al copiar el código.";
+            }
+        }
+
+        window.onload = initAdmin;
+    </script>
+</body>
+</html>
