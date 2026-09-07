@@ -27,7 +27,7 @@ function isRestauranteA(modoInterno) {
 // =====================================================================
 const MODOS_ALIAS = {
     restaurante001: 'Club House',
-    restaurante002: 'US Open'
+    restaurante002: 'Restaurante 002'
 };
 
 // NUEVO: Función helper para obtener el nombre visual seguro
@@ -45,9 +45,11 @@ function getModoAlias(modoInterno) {
 const CSV_URL_RESTAURANTE001 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpVWFPsuWkDT5wtr5mM8H0JFC8d0ePBCKJxcXDyyfX7M5FOZ1UXUqRrPiOaLeq_tYt9n9-a1iabKPR/pub?output=csv';
 const WEB_APP_URL_RESTAURANTE001 = 'https://script.google.com/macros/s/AKfycbwfQmS5FqOqRaIptpnru0u9RU4_4TixeeTcz-TUFimsIa_Svoex6IkFbwmpa6-KOw-bdw/exec';
 
-// CONFIGURACION US OPEN (restaurante002)
-const CSV_URL_RESTAURANTE002 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSOWewZgqWZEFYiIMh8DTUX5tr6EEXBwvUJGr7hrpkCG91UhE5xU8fDJ12qcRVrT69xfZ5NGGGyhNCE/pub?output=csv'; 
-const WEB_APP_URL_RESTAURANTE002 = 'https://script.google.com/macros/s/AKfycby4d3AzkjnVhy7k9H4ydOO_b909R9VuOgCvpmVOMNR8R60xEQSYEY5jT5L2FrLqZ8gd/exec';
+// restaurante002: ranura inactiva en esta copia independiente de Club House (enabled: false
+// arriba). Se vacían las URLs para no dejar en este proyecto ninguna referencia a la hoja/
+// Apps Script del restaurante original.
+const CSV_URL_RESTAURANTE002 = '';
+const WEB_APP_URL_RESTAURANTE002 = '';
 
 // MODIFICADO: Función auxiliar pura. Recibe el modo explícitamente.
 function getWebAppUrl(modo) {
@@ -159,7 +161,7 @@ const PATH_IMAGENES = 'imagenes/imagenes/';
 const PATH_ALERGENOS = 'imagenes/alergenos/';
 
 // Logos Principales (Header del Editor)
-const LOGO_RESTAURANTE001 = PATH_IMAGENES + 'logo_web01.png';
+const LOGO_RESTAURANTE001 = PATH_IMAGENES + 'logo-clubhouse.png';
 const LOGO_RESTAURANTE002 = PATH_IMAGENES + 'logo_web02.png';
 
 // Códigos QR Roland Garros

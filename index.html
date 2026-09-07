@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Editor Pro - Club House</title>
-    <link rel="icon" href="setting.png" type="image/png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 
     <div class="app-container">
         <div class="header-admin">
-            <img id="header-logo-rg" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" class="header-logo header-logo-left" alt="Logo RG">
+            <img id="header-logo-rg" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" class="header-logo header-logo-left" alt="Logo Club House">
             <div class="header-center-wrapper">
                 <h1 style="font-size: 1.9rem; font-weight: 800; color: var(--texto); letter-spacing: -0.02em; margin: 0 0 8px 0;">Web Editor Pro <span id="app-version" style="font-size: 0.85rem; color: var(--primario); font-weight: 700; margin-left: 8px; vertical-align: middle; display: inline-block;"></span></h1>
                 <div class="header-status-row" style="display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 10px;">
@@ -25,11 +25,10 @@
                     </div>
                 </div>
                 <div id="optimistic-timer" style="display:none; font-size: 0.7rem; color: #c0392b; font-weight: bold; margin-top: 5px; background: #fce4e4; padding: 4px 8px; border-radius: 4px; align-items: center; gap: 5px;">
-                    🔒 Consistencia <span id="timer-mode" style="background:#c0392b; color:white; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">RG</span>: <span id="timer-seconds">180</span>s
+                    🔒 Consistencia <span id="timer-mode" style="background:#c0392b; color:white; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">Club House</span>: <span id="timer-seconds">180</span>s
                     <button onclick="cancelarModoOptimista()" style="margin-left: 10px; background: transparent; border: 1px solid #c0392b; color: #c0392b; padding: 1px 5px; border-radius: 3px; cursor: pointer; font-size: 0.6rem; font-weight: bold;">✕ CANCELAR</button>
                 </div>
             </div>
-            <img id="header-logo-usopen" src="data:image/gif;base64,R0lGODlhAQABAAD/ACWAAAAAAQABAAACADs=" class="header-logo header-logo-right" alt="Logo USOPEN">
         </div>
 
         <div class="tabs-container" id="tabs-container">
@@ -38,8 +37,6 @@
             <button id="tab-btn-sug-rg" class="tab-btn" onclick="switchTab('sugerencias', this)">2. Sugerencias RG</button>
             <button id="tab-btn-pro" class="tab-btn" onclick="switchTab('pro', this)" style="margin-left: auto; margin-right: auto;">3. Traductor Pro</button>
             <button id="tab-btn-qa" class="tab-btn" onclick="switchTab('qa', this)">3.1. Preguntas y respuestas</button>
-            <button id="tab-btn-usopen" class="tab-btn" onclick="switchTab('editor-usopen', this)">4. Editor Carta USOpen</button>
-            <button id="tab-btn-sug-usopen" class="tab-btn" onclick="switchTab('sugerencias-usopen', this)">5. Sugerencias USOpen</button>
         </div>
 
         <div id="tab-apikeys" class="tab-content" style="display: none;">
@@ -69,17 +66,10 @@
                     <div class="space-y-1.5">
                         <h3 class="text-sm font-semibold uppercase tracking-wider mb-2">1. Orígenes de Datos</h3>
                         <div class="grid grid-cols-1 gap-1 text-sm mb-2">
-                            <div class="flex gap-2 items-center"><label id="label-web-rg" class="text-xs whitespace-nowrap font-bold text-slate-400">WEB RG:</label></div>
+                            <div class="flex gap-2 items-center"><label id="label-web-rg" class="text-xs whitespace-nowrap font-bold text-slate-400">WEB CLUB HOUSE:</label></div>
                             <div class="flex gap-1.5">
                                 <input type="text" id="sheetsUrlRG" placeholder="Cargando URL..." class="flex-1 text-xs py-1 px-2">
-                                <button id="loadSheetsBtnRG" class="btn btn-secondary text-xs py-1 px-2 whitespace-nowrap">Cargar web RG</button>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 gap-1 text-sm mb-2">
-                            <div class="flex gap-2 items-center"><label id="label-web-usopen" class="text-xs whitespace-nowrap font-bold text-slate-400">WEB USOPEN:</label></div>
-                            <div class="flex gap-1.5">
-                                <input type="text" id="sheetsUrlUSOpen" placeholder="Cargando URL..." class="flex-1 text-xs py-1 px-2">
-                                <button id="loadSheetsBtnUSOpen" class="btn btn-secondary text-xs py-1 px-2 whitespace-nowrap">Cargar web USOPEN</button>
+                                <button id="loadSheetsBtnRG" class="btn btn-secondary text-xs py-1 px-2 whitespace-nowrap">Cargar web Club House</button>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 gap-1 text-sm">
@@ -153,10 +143,6 @@
             <div id="sugerencias-contenido"></div>
         </div>
 
-        <div id="tab-sugerencias-usopen" class="tab-content" style="display: none;">
-            <div id="sugerencias-contenido-usopen"></div>
-        </div>
-
         <button class="btn-add-float" onclick="abrirSelector()">+</button>
         <button class="btn-guardar-main" id="btn-guardar-dinamico" onclick="enviarAlExcel()">GUARDAR CAMBIOS EN WEB</button>
 
@@ -174,8 +160,7 @@
                 <p style="color: #666; margin-bottom: 25px;">Selecciona a qué restaurante deseas subir los datos del archivo seleccionado:</p>
                 <div style="display: flex; gap: 15px; justify-content: center;">
                     <!-- MODIFICADO: Llamadas abstractas -->
-                    <button class="btn-modal-aceptar" id="modal-dest-rg" onclick="UI.confirmarImportacion('restaurante001')" style="background-color: #e67e22; width: 100%; padding: 15px; font-size: 1.1rem;">RG (Roland Garros)</button>
-                    <button class="btn-modal-aceptar" id="modal-dest-usopen" onclick="UI.confirmarImportacion('restaurante002')" style="background-color: #2ecc71; width: 100%; padding: 15px; font-size: 1.1rem;">US Open</button>
+                    <button class="btn-modal-aceptar" id="modal-dest-rg" onclick="UI.confirmarImportacion('restaurante001')" style="background-color: #e67e22; width: 100%; padding: 15px; font-size: 1.1rem;">Club House</button>
                 </div>
                 <button class="btn-modal-cancelar" onclick="UI.cancelarImportacion()" style="margin-top: 25px;">Cancelar</button>
             </div>
@@ -294,43 +279,27 @@
         // "Sincronizar con Google Sheet" ya no puede pisar INFO_* real con datos desactualizados.
         if (typeof getWebAppUrl === 'function') {
             const urlRG = getWebAppUrl('restaurante001');
-            const urlUSOpen = getWebAppUrl('restaurante002');
             if (urlRG) document.getElementById('sheetsUrlRG').value = urlRG + '?accion=csv';
-            if (urlUSOpen) document.getElementById('sheetsUrlUSOpen').value = urlUSOpen + '?accion=csv';
         } else {
             if (typeof CSV_URL_RESTAURANTE001 !== 'undefined') document.getElementById('sheetsUrlRG').value = CSV_URL_RESTAURANTE001;
-            if (typeof CSV_URL_RESTAURANTE002 !== 'undefined') document.getElementById('sheetsUrlUSOpen').value = CSV_URL_RESTAURANTE002;
         }
-        
+
         const logoRGEl = document.getElementById('header-logo-rg');
-        const logoUSOPENEl = document.getElementById('header-logo-usopen');
         if (typeof LOGO_RESTAURANTE001 !== 'undefined' && logoRGEl) logoRGEl.src = LOGO_RESTAURANTE001;
-        if (typeof LOGO_RESTAURANTE002 !== 'undefined' && logoUSOPENEl) logoUSOPENEl.src = LOGO_RESTAURANTE002;
 
         if (typeof getModoAlias === 'function') {
             const tabRG = document.getElementById('tab-btn-rg');
             if (tabRG) tabRG.innerText = `1. Editor Carta ${getModoAlias('restaurante001')}`;
             const tabSugRG = document.getElementById('tab-btn-sug-rg');
             if (tabSugRG) tabSugRG.innerText = `2. Sugerencias ${getModoAlias('restaurante001')}`;
-            const tabUSOPEN = document.getElementById('tab-btn-usopen');
-            if (tabUSOPEN) tabUSOPEN.innerText = `4. Editor Carta ${getModoAlias('restaurante002')}`;
-            const tabSugUSOPEN = document.getElementById('tab-btn-sug-usopen');
-            if (tabSugUSOPEN) tabSugUSOPEN.innerText = `5. Sugerencias ${getModoAlias('restaurante002')}`;
 
             const modalDestRG = document.getElementById('modal-dest-rg');
             if (modalDestRG) modalDestRG.innerText = getModoAlias('restaurante001');
-            const modalDestUSOPEN = document.getElementById('modal-dest-usopen');
-            if (modalDestUSOPEN) modalDestUSOPEN.innerText = getModoAlias('restaurante002');
 
             const labelWebRG = document.getElementById('label-web-rg');
             if (labelWebRG) labelWebRG.innerText = `WEB ${getModoAlias('restaurante001')}:`;
             const btnLoadRG = document.getElementById('loadSheetsBtnRG');
             if (btnLoadRG) btnLoadRG.innerText = `Cargar web ${getModoAlias('restaurante001')}`;
-
-            const labelWebUSOPEN = document.getElementById('label-web-usopen');
-            if (labelWebUSOPEN) labelWebUSOPEN.innerText = `WEB ${getModoAlias('restaurante002')}:`;
-            const btnLoadUSOPEN = document.getElementById('loadSheetsBtnUSOpen');
-            if (btnLoadUSOPEN) btnLoadUSOPEN.innerText = `Cargar web ${getModoAlias('restaurante002')}`;
 
             const btnSyncSheets = document.getElementById('btnSyncSheets');
             if (btnSyncSheets) btnSyncSheets.innerText = `☁️ Sincronizar con Google Sheet ${getModoAlias('restaurante001')}`;
@@ -341,10 +310,6 @@
             if (!RESTAURANTES_CONFIG.restaurante001.enabled) {
                 const t1 = document.getElementById('tab-btn-rg'); if(t1) t1.style.display = 'none';
                 const t2 = document.getElementById('tab-btn-sug-rg'); if(t2) t2.style.display = 'none';
-            }
-            if (!RESTAURANTES_CONFIG.restaurante002.enabled) {
-                const t3 = document.getElementById('tab-btn-usopen'); if(t3) t3.style.display = 'none';
-                const t4 = document.getElementById('tab-btn-sug-usopen'); if(t4) t4.style.display = 'none';
             }
         }
 
