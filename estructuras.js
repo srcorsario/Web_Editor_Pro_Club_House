@@ -82,7 +82,14 @@ const ESTRUCTURA_RESTAURANTE001 = [
     // --- RANGO 13300-13399: VINOS TINTOS ---
     { id: 13300, name: "Vinos Tintos", rango: 99, pestanaId: 'vinos_tintos', folder: "vinos" },
     // --- RANGO 13400-13499: CAVAS & CHAMPAGNE ---
-    { id: 13400, name: "Cavas & Champagne", rango: 99, pestanaId: 'cavas', folder: "vinos" }
+    { id: 13400, name: "Cavas & Champagne", rango: 99, pestanaId: 'cavas', folder: "vinos" },
+    // --- ALÉRGENOS E INTOLERANCIAS --- (nueva pestaña, 8 septiembre, última de todas). A
+    // diferencia del resto NO tiene platos reales -- es una página fija de contenido en la web
+    // pública (leyenda de iconos + aviso, ver script.js/generateAlergenosPageHtml). Se le da un
+    // rango de ID sin usar (14001-14099, no colisiona con nada) únicamente para que el
+    // acordeón del editor pueda mostrarla con su interruptor de activar/desactivar, igual que
+    // el resto de pestañas; no se espera que se añadan platos dentro de esta categoría.
+    { id: 14001, name: "Alérgenos e Intolerancias", rango: 98, pestanaId: 'alergenos', folder: "alergenos" }
 ];
 
 
