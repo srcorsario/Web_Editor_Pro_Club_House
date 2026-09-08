@@ -28,8 +28,8 @@ const ESTRUCTURA_RESTAURANTE001 = [
     { id: 1401, name: "Ingredientes extra bocadillos", rango: 98, pestanaId: null, folder: "bocadillos" },
     // --- RANGO 1501-1599: SANDWICH ---
     { id: 1501, name: "Sandwich", rango: 98, pestanaId: 'sandwich', folder: "sandwich" },
-    // --- RANGO 1601-1699: ENTRANTES ---
-    { id: 1601, name: "Entrantes", rango: 98, pestanaId: 'entrantes', folder: "entrantes" },
+    // --- RANGO 1601-1699: ENTRANTES (renombrada "Para Picar" en la web pública, 8 sept.) ---
+    { id: 1601, name: "Para Picar", rango: 98, pestanaId: 'entrantes', folder: "entrantes" },
     // --- RANGO 1701-1799: PIZZAS ---
     { id: 1701, name: "Pizzas", rango: 98, pestanaId: 'pizzas', folder: "pizzas" },
     // --- RANGO 2001-2099: ENSALADAS ---
