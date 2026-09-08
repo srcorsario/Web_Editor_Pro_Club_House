@@ -60,6 +60,12 @@ const ESTRUCTURA_RESTAURANTE001 = [
         {id: 10100, name: "Zumos", folder: "refrescos", max: 10199},
         {id: 10200, name: "Otras bebidas", folder: "refrescos", max: 10299}
     ]},
+    // --- RANGO 10301-10499: BEBIDAS SALUDABLES --- (nueva pestaña, 8 septiembre, insertada
+    // entre "Bebidas" y "Cervezas" a petición del usuario)
+    { id: 10301, name: "Bebidas Saludables", rango: 198, pestanaId: 'bebidas_saludables', sub: [
+        {id: 10301, name: "Zumos Saludables", folder: "refrescos", max: 10399},
+        {id: 10401, name: "Botellas Saludables", folder: "refrescos", max: 10499}
+    ]},
     // --- RANGO 11001-11099: CERVEZAS ---
     { id: 11001, name: "Cervezas", rango: 98, pestanaId: 'cervezas', folder: "cerveza" },
 
