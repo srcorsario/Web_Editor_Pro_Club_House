@@ -207,6 +207,12 @@
                                 <label style="font-size:0.7rem; font-weight:bold; color:#7f8c8d;">Precio (€)</label>
                                 <input id="edit-precio" type="number" step="0.01" class="input-estandar input-precio-super-mini input-precio-mini">
                             </div>
+                            <!-- NUEVO (8 septiembre): precio opcional de "1/2 ración". Vacío = el plato no
+                                 se puede pedir a mitad y la web pública solo muestra el precio de siempre. -->
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label style="font-size:0.7rem; font-weight:bold; color:#7f8c8d;">Precio 1/2 ración (€)</label>
+                                <input id="edit-precio-media" type="number" step="0.01" placeholder="opcional" class="input-estandar input-precio-super-mini input-precio-mini">
+                            </div>
                             <div class="input-group" style="margin-bottom: 0;">
                                 <label style="font-size:0.7rem; font-weight:bold; color:#7f8c8d;">Nombre Imagen</label>
                                 <input id="edit-imagen" class="input-estandar input-imagen-flexible" placeholder="ej: paella01.webp">

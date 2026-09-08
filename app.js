@@ -172,7 +172,9 @@ async function cargar(retryCount = 0) {
                     imagen: c[5] || "",
                     alergenos: superLimpiar(c[6]),
                     // NUEVO: posiciones desactivadas de "Opciones del plato" (ver languages.js).
-                    opcionesInactivas: superLimpiar(c[window.IDX_OPCIONES_INACTIVAS] || "")
+                    opcionesInactivas: superLimpiar(c[window.IDX_OPCIONES_INACTIVAS] || ""),
+                    // NUEVO (8 septiembre): precio opcional de "1/2 ración" (ver languages.js > IDX_PRECIO_MEDIA).
+                    precioMedia: superLimpiar(c[window.IDX_PRECIO_MEDIA] || "")
                 };
                 
                 if (window.IDIOMAS_ORDEN && window.IDIOMAS_CSV_INDICES) {
@@ -304,7 +306,7 @@ function renderPlatoItemHtml(p) {
             <div style="font-size: 0.7rem; color: #7f8c8d; margin-top: 4px; display: flex; gap: 10px; align-items: center;">${htmlCarpetaPC} ${htmlImagenPC}</div>
         </div>
         <div class="plato-meta-footer">
-            <div><small>ID ${p.id} | ${p.precio}€</small></div>
+            <div><small>ID ${p.id} | ${p.precio}€${(p.precioMedia && parseFloat(p.precioMedia) > 0) ? ` | 1/2: ${p.precioMedia}€` : ''}</small></div>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <button class="btn-config" onclick="abrirEditor(${p.id})">⚙️</button>
                 <label class="switch-container">
@@ -603,7 +605,11 @@ function abrirEditor(id, esNuevo = false) {
     
     const editPrecio = document.getElementById('edit-precio');
     if (editPrecio) editPrecio.value = p.precio;
-    
+
+    // NUEVO (8 septiembre): precio opcional de "1/2 ración" — vacío si el plato no la tiene.
+    const editPrecioMedia = document.getElementById('edit-precio-media');
+    if (editPrecioMedia) editPrecioMedia.value = p.precioMedia || '';
+
     const editImagen = document.getElementById('edit-imagen');
     if (editImagen) editImagen.value = p.imagen;
     
@@ -1119,6 +1125,12 @@ function aplicarCambiosPlato() {
     p.precio = parseFloat(preVal).toFixed(2);
     if(isNaN(p.precio)) p.precio = "0.00";
 
+    // NUEVO (8 septiembre): precio opcional de "1/2 ración" — campo vacío = el plato no tiene
+    // media ración (a diferencia de Precio, aquí "" es un valor válido y distinto de "0.00").
+    let preValMedia = (document.getElementById('edit-precio-media') || {}).value || "";
+    preValMedia = preValMedia.trim();
+    p.precioMedia = preValMedia !== "" && !isNaN(parseFloat(preValMedia)) ? parseFloat(preValMedia).toFixed(2) : "";
+
     p.imagen = superLimpiar(document.getElementById('edit-imagen').value);
 
     const selectedAlergenos = document.querySelectorAll('.alergeno-btn.selected');
@@ -1189,6 +1201,7 @@ function prepararNuevoPlato(baseId, folder) {
     datosTempNuevo = {
         id: nuevoId,
         precio: "0.00",
+        precioMedia: "",
         activa: true,
         carpeta: folder,
         imagen: "",
@@ -1229,7 +1242,7 @@ async function enviarAlExcel() {
     sessionStorage.setItem('optState_' + modo, JSON.stringify(window.optimisticState[modo]));
     
     const payload = datosLocales.map(p => {
-        let obj = { id: p.id, precio: p.precio, activa: p.activa ? 'si' : 'no', carpeta: p.carpeta, imagen: p.imagen, alergenos: p.alergenos, opciones_inactivas: p.opcionesInactivas || "" };
+        let obj = { id: p.id, precio: p.precio, precio_media: p.precioMedia || "", activa: p.activa ? 'si' : 'no', carpeta: p.carpeta, imagen: p.imagen, alergenos: p.alergenos, opciones_inactivas: p.opcionesInactivas || "" };
         if (window.IDIOMAS_ORDEN) {
             window.IDIOMAS_ORDEN.forEach(l => { obj[`nombre_${l}`] = p[l] || ""; });
         }

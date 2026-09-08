@@ -43,7 +43,7 @@ function getModoAlias(modoInterno) {
 
 // CONFIGURACION CLUB HOUSE (restaurante001)
 const CSV_URL_RESTAURANTE001 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpVWFPsuWkDT5wtr5mM8H0JFC8d0ePBCKJxcXDyyfX7M5FOZ1UXUqRrPiOaLeq_tYt9n9-a1iabKPR/pub?output=csv';
-const WEB_APP_URL_RESTAURANTE001 = 'https://script.google.com/macros/s/AKfycbwfQmS5FqOqRaIptpnru0u9RU4_4TixeeTcz-TUFimsIa_Svoex6IkFbwmpa6-KOw-bdw/exec';
+const WEB_APP_URL_RESTAURANTE001 = 'https://script.google.com/macros/s/AKfycbxzwOUB9Bb7HbngjGuvqhDPF0JCQsuOfwnqZNsUBzS6TDTrJjuC3ZTTe0N0sZElu1jXrg/exec';
 
 // restaurante002: ranura inactiva en esta copia independiente de Club House (enabled: false
 // arriba). Se vacían las URLs para no dejar en este proyecto ninguna referencia a la hoja/

@@ -100,7 +100,11 @@ function servirCsvEnVivo(idiomasParam, idsParam, soloBaseParam) {
   // NUEVO (26 agosto): se añade también HASH_FILA — hash de detección de cambios de toda la
   // fila (ver doPost/calcularHashFila), para que la web pública pueda comprobar qué ha
   // cambiado desde su última visita con una petición de solo columnas base (ver soloBaseParam).
-  var COLUMNAS_BASE = ['ID', 'PRECIO', 'ACTIVA', 'CARPETA', 'ARCHIVO_FOTO', 'ALERGENOS_COD', 'OPCIONES_INACTIVAS', 'HASH_FILA'];
+  // NUEVO (8 septiembre): se añade PRECIO_MEDIA a las columnas base — precio opcional de
+  // "1/2 ración" por plato (vacío = ese plato no tiene media ración). Va como columna base
+  // (no depende de idioma) igual que PRECIO, así viaja en cualquier petición de CSV filtrada
+  // por idioma o por soloBase.
+  var COLUMNAS_BASE = ['ID', 'PRECIO', 'PRECIO_MEDIA', 'ACTIVA', 'CARPETA', 'ARCHIVO_FOTO', 'ALERGENOS_COD', 'OPCIONES_INACTIVAS', 'HASH_FILA'];
 
   var columnasAIncluir = null; // null = todas las columnas (caso admin: sin filtro de idioma)
   if (soloBaseParam) {
@@ -232,7 +236,7 @@ function doPost(e) {
     var datos = JSON.parse(e.postData.contents);
     if (!datos || datos.length === 0) return ContentService.createTextOutput("Error: Datos vacíos recibidos.");
 
-    // Las únicas 34 columnas base oficiales e inalterables
+    // Las únicas 35 columnas base oficiales e inalterables
     // NUEVO: se añade "Opciones_Inactivas" (columna 33, paridad con US Open) — guarda, por
     // plato, las posiciones (1, 2, 3...) de las opciones/ingredientes entre "//.../ /" del
     // Nombre_ES que están DESACTIVADAS (p.ej. "2,5"). Es la misma para todos los idiomas (no
@@ -246,13 +250,20 @@ function doPost(e) {
     // basta con reservarle el hueco aquí. Sirve para que la web pública pueda preguntar "¿ha
     // cambiado esta fila desde mi última visita?" sin tener que descargar su contenido completo
     // para comparar (ver servirCsvEnVivo > soloBaseParam/idsParam).
+    // NUEVO (8 septiembre): se añade "Precio_Media" (columna 34, la última de las fijas) —
+    // precio opcional de "1/2 ración" para platos que se pueden pedir a mitad (ej. tostadas).
+    // Vacío = ese plato no tiene media ración disponible. Va AL FINAL a propósito: el editor
+    // (app.js > cargar()) lee las columnas base por POSICIÓN fija (no por nombre, a diferencia
+    // de la web pública), así que insertarla en medio habría desplazado Carpeta/Archivo_Foto/
+    // Alergenos_Cod/Nombre_EN.../Opciones_Inactivas y roto esa lectura. Ver IDX_PRECIO_MEDIA
+    // en languages.js (Web Editor Pro) para la posición espejo del lado del editor.
     var cabecerasBaseFijas = [
       "ID", "Precio", "Activa", "Nombre_ES", "Carpeta", "Archivo_Foto", "Alergenos_Cod",
       "Nombre_EN", "Nombre_DE", "Nombre_FR", "Nombre_IT", "Nombre_RU", "Nombre_NL",
       "Nombre_PL", "Nombre_SV", "Nombre_NO", "Nombre_DA", "Nombre_FI", "Nombre_PT",
       "Nombre_RO", "Nombre_HU", "Nombre_CS", "Nombre_EL", "Nombre_TR", "Nombre_AR",
       "Nombre_ZH", "Nombre_JA", "Nombre_CA", "Nombre_EU", "Nombre_GL", "Nombre_VA", "Nombre_KO",
-      "Opciones_Inactivas"
+      "Opciones_Inactivas", "Precio_Media"
     ];
 
     // Leer ANTES de borrar nada, para poder recuperar el contenido
@@ -350,6 +361,8 @@ function doPost(e) {
           posiblesClaves = ["alergenos_cod", "alergenosCod", "Alergenos_Cod", "ALERGENOS_COD", "alergenos"];
         } else if (kUpper === "PRECIO") {
           posiblesClaves = ["precio", "Precio", "PRECIO"];
+        } else if (kUpper === "PRECIO_MEDIA") {
+          posiblesClaves = ["precio_media", "precioMedia", "Precio_Media", "PRECIO_MEDIA"];
         } else if (kUpper === "CARPETA") {
           posiblesClaves = ["carpeta", "Carpeta", "CARPETA"];
         } else if (kUpper === "OPCIONES_INACTIVAS") {
