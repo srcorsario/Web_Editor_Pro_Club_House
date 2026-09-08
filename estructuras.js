@@ -68,6 +68,12 @@ const ESTRUCTURA_RESTAURANTE001 = [
     ]},
     // --- RANGO 11001-11099: CERVEZAS ---
     { id: 11001, name: "Cervezas", rango: 98, pestanaId: 'cervezas', folder: "cerveza" },
+    // --- RANGO 11101-11299: APERITIVOS --- (nueva pestaña, 8 septiembre, insertada entre
+    // "Cervezas" y "Vinos Blancos" a petición del usuario)
+    { id: 11101, name: "Aperitivos", rango: 198, pestanaId: 'aperitivos', sub: [
+        {id: 11101, name: "Aperitivos", folder: "aperitivos", max: 11199},
+        {id: 11201, name: "Copas de vino y sangría", folder: "aperitivos", max: 11299}
+    ]},
 
     // --- RANGO 13100-13199: VINOS BLANCOS --- (misma norma que en los otros restaurantes)
     { id: 13100, name: "Vinos Blancos", rango: 99, pestanaId: 'vinos_blancos', folder: "vinos" },
