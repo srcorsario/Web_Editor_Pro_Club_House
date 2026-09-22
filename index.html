@@ -424,7 +424,12 @@
 
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
-        <div class="loading-text">Cargando datos...</div>
+        <!-- NUEVO: id añadido para poder cambiar el texto desde JS (ver
+             mostrarOverlayCarga()/ocultarOverlayCarga() en app.js) -- se reutiliza este mismo
+             overlay/rueda para las llamadas de traducción con IA (que a veces tardan bastante,
+             sobre todo si Gemini responde 503 "modelo saturado" y hay que reintentar con varias
+             claves), no solo para "Cargando datos..." al cambiar de pestaña. -->
+        <div id="loading-text" class="loading-text">Cargando datos...</div>
     </div>
 
     <div id="debug-panel" style="display: none; position: fixed; bottom: 20px; left: 20px; background: #111827; color: #4ade80; padding: 12px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; z-index: 9998; max-width: 320px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); line-height: 1.4; cursor: grab;">
@@ -478,6 +483,10 @@
                     if(saveBtn) saveBtn.style.display = 'none';
                 }
 
+                // NUEVO: guardamos el modo que estaba cargado ANTES de este cambio de pestaña,
+                // para poder saber más abajo si de verdad hace falta recargar el menú.
+                const modoAnterior = window.currentMode;
+
                 // MODIFICADO: Mapeo estricto a Abstract Keys
                 if (tabId === 'sugerencias-usopen' || tabId === 'editor-usopen') {
                     window.currentMode = 'restaurante002';
@@ -498,7 +507,16 @@
                     }
                 }
 
-                if (typeof window.cargar === 'function') {
+                // CORREGIDO: antes se llamaba a cargar() en CADA cambio de pestaña, aunque el
+                // restaurante siguiera siendo el mismo (p.ej. Editor Carta RG -> Sugerencias RG
+                // -> Traductor Pro son todas restaurante001) -- eso descargaba el CSV del menú
+                // entero cada vez y volvía a consultar el estado de categorías en Apps Script,
+                // aunque los datos ya estuvieran en memoria y no hubieran cambiado. Ahora solo
+                // se recarga si el modo cambia de verdad, o si todavía no hay datos cargados
+                // (primera vez, o la carga anterior falló).
+                const necesitaRecargar = (window.currentMode !== modoAnterior) ||
+                    !Array.isArray(window.datosLocales) || window.datosLocales.length === 0;
+                if (necesitaRecargar && typeof window.cargar === 'function') {
                     try { await window.cargar(); } catch (e) { console.error("[Editor] Error cargando datos:", e); }
                 }
 
@@ -519,6 +537,33 @@
 
         if (!window.currentMode) window.currentMode = 'restaurante001';
         actualizarTextoBotonGuardar();
+
+        // NUEVO: carga automática de la pestaña activa al abrir la web. Antes, nada disparaba
+        // la primera carga de datos hasta que el usuario hacía clic en una pestaña -- aunque
+        // "1. Editor Carta RG" ya apareciera marcada como activa, su contenido se quedaba
+        // vacío y SIN ningún indicador de carga hasta ese primer clic. Ahora se simula el clic
+        // que haría el usuario, reutilizando switchTab() tal cual -- con su mismo overlay
+        // "Cargando datos..." -- para que quede claro que está trabajando.
+        //
+        // Se calcula la pestaña inicial real a partir de cuál haya quedado activa (o, si esa
+        // ha quedado oculta por "👁️ Pestañas", la primera pestaña visible), para no forzar una
+        // pestaña que el usuario tenga escondida.
+        let tabBtnInicial = document.querySelector('.tabs-container .tab-btn.active');
+        if (!tabBtnInicial || tabBtnInicial.style.display === 'none') {
+            tabBtnInicial = Array.from(document.querySelectorAll('.tabs-container .tab-btn'))
+                .find(btn => btn.style.display !== 'none');
+        }
+        if (tabBtnInicial) {
+            const MAPA_ID_A_TABID = {
+                'tab-btn-apikeys': 'apikeys',
+                'tab-btn-rg': 'editor',
+                'tab-btn-sug-rg': 'sugerencias',
+                'tab-btn-pro': 'pro',
+                'tab-btn-qa': 'qa'
+            };
+            const tabIdInicial = MAPA_ID_A_TABID[tabBtnInicial.id] || 'editor';
+            switchTab(tabIdInicial, tabBtnInicial);
+        }
 
         // NUEVO: muestra la versión general de la app (window.APP_VERSIONS.app, la que se
         // incrementa en app.js con cada cambio significativo) junto al título, como

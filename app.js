@@ -1,11 +1,34 @@
 // --- app.js ---
 // NUEVO: Registro de versión del archivo
 window.APP_VERSIONS = window.APP_VERSIONS || {};
-window.APP_VERSIONS.app = '2.10.0'; // CORREGIDO: esCroqueta/esCroquetaVeg (abrirEditor, actualizarNombreCroquetas, prepararNuevoPlato) ya comprueban currentMode vía esRangoCroquetasRG() — antes el rango de ID 12100-12299 activaba la lógica de croquetas también en Entrantes/Ensaladas de US Open, heredado de la plantilla de Roland Garros
+window.APP_VERSIONS.app = '2.11.0'; // NUEVO: mejoras de carga traídas de Web Editor Pro v3 -- caché en memoria por restaurante + de-duplicación de cargas en marcha (cargarYCachearModo/fetchYParsearDatos), estado de pestañas activas/inactivas pedido en paralelo sin bloquear el pintado del menú (cargarEstadoCategoriasEnSegundoPlano), cargar() ya no repite la descarga completa del CSV si el modo no ha cambiado, y rueda de carga a pantalla completa reutilizada también en las llamadas de traducción con IA (mostrarOverlayCarga/ocultarOverlayCarga). No incluye "Menú Especial" (no aplica a este proyecto).
 
 console.group("%c[Editor] Inicializando sistema de control...", "color: orange; font-weight: bold;");
 
 window.hayCambiosSinGuardar = false;
+
+// NUEVO: overlay de carga reutilizable a pantalla completa (#loading-overlay en index.html).
+// Antes solo se mostraba, sin poder cambiar su texto, al cambiar de pestaña ("Cargando
+// datos..."). Ahora generarTraduccionEN() y ejecutarTraduccionAutomatica() también lo
+// reutilizan con su propio texto mientras esperan la respuesta de Gemini -- una llamada puede
+// tardar bastante (reintentos ante un 503 "modelo saturado"), y antes el único aviso era el
+// texto del propio botón, poco visible. ocultarOverlayCarga() restaura el texto por defecto
+// "Cargando datos..." al ocultarlo, para no dejarlo puesto la próxima vez que switchTab()
+// (index.html) reutilice este mismo overlay al cambiar de pestaña.
+function mostrarOverlayCarga(texto) {
+    const overlay = document.getElementById('loading-overlay');
+    if (!overlay) return;
+    const textoEl = document.getElementById('loading-text');
+    if (textoEl) textoEl.textContent = texto;
+    overlay.style.display = 'flex';
+}
+
+function ocultarOverlayCarga() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.style.display = 'none';
+    const textoEl = document.getElementById('loading-text');
+    if (textoEl) textoEl.textContent = 'Cargando datos...';
+}
 
 // NUEVO: estado en memoria de qué pestañas (categorías de nivel superior) están desactivadas
 // en la web pública, por restaurante. Se guarda como Set de pestanaId (ver estructuras.js).
@@ -118,81 +141,90 @@ async function cargarEstadoCategorias(modo) {
     }
 }
 
-async function cargar(retryCount = 0) {
-    const modo = window.currentMode || 'restaurante001';
-    
-    // NUEVO: Validar si el restaurante está habilitado antes de cargar
-    if (typeof isRestauranteA === 'function' && !isRestauranteA(modo)) {
-        const alias = getModoAlias(modo);
-        console.warn(`[Editor] ⛔️ Operación cancelada: El restaurante "${alias}" está deshabilitado.`);
-        const statusCarga = document.getElementById('status-carga');
-        if (statusCarga) {
-            statusCarga.innerText = `⛔ El restaurante "${alias}" está deshabilitado en la configuración.`;
-            statusCarga.className = "status-error";
-            statusCarga.style.display = "";
-        }
-        return;
-    }
-    
-    const state = window.optimisticState[modo];
-    const timeSinceSave = Date.now() - state.t;
-    const isConsistencyZone = timeSinceSave < CONSISTENCY_WINDOW_MS;
+// NUEVO: descarga y parsea el CSV de platos de un restaurante concreto, sin tocar
+// datosLocales/window.currentMode ni renderizar nada — separado de cargar() para que la
+// caché en memoria (ver cargarYCachearModo) pueda reutilizar este mismo bloque sin
+// duplicarlo. Devuelve null (en vez de lanzar) si el modo no tiene URL de CSV configurada,
+// igual que hacía antes cargar() en ese caso.
+async function fetchYParsearDatos(modo) {
+    const url = (typeof window.getCsvUrl === 'function') ? window.getCsvUrl(modo) : '';
+    if (!url) return null;
 
-    console.log(`[Editor] Cargando datos para ${modo} (${getModoAlias(modo)})... (Zona de peligro: ${isConsistencyZone})`);
-    try {
-        const url = getCsvUrlSafe();
-        if (!url) return;
-        
-        if (typeof UI !== 'undefined' && typeof UI.log === 'function') {
-            UI.log(`[Editor] Conectando con Google Sheets remoto (${getModoAlias(modo)})...`);
-        }
-        
-        // OJO: no añadir cabeceras manuales aquí (Cache-Control/Pragma): fuerzan un preflight
-        // CORS (OPTIONS) que el CSV publicado de Google Sheets/Apps Script no responde bien,
-        // y el navegador bloquea la petición real. "no-store" ya evita la caché del navegador.
-        const resp = await fetch(url + '&zx=' + Date.now(), { 
-            cache: "no-store"
-        });
-        const text = await resp.text();
-        
-        const filas = text.split(/\r?\n/).filter(f => f.trim() !== "");
-        datosLocales = [];
-        
-        filas.forEach((f, i) => {
-            if (i === 0) return; 
-            const c = f.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            const id = parseInt(c[0]);
-            
-            if (!isNaN(id)) {
-                let item = {
-                    id: id,
-                    precio: c[1] || "0.00",
-                    activa: (c[2] || "").trim().toUpperCase() === "SI",
-                    carpeta: c[4] || "",
-                    imagen: c[5] || "",
-                    alergenos: superLimpiar(c[6]),
-                    // NUEVO: posiciones desactivadas de "Opciones del plato" (ver languages.js).
-                    opcionesInactivas: superLimpiar(c[window.IDX_OPCIONES_INACTIVAS] || ""),
-                    // NUEVO (8 septiembre): precio opcional de "1/2 ración" (ver languages.js > IDX_PRECIO_MEDIA).
-                    precioMedia: superLimpiar(c[window.IDX_PRECIO_MEDIA] || "")
-                };
-                
-                if (window.IDIOMAS_ORDEN && window.IDIOMAS_CSV_INDICES) {
-                    window.IDIOMAS_ORDEN.forEach(lang => {
-                        const index = window.IDIOMAS_CSV_INDICES[lang];
-                        if (index !== undefined && c[index] !== undefined) {
-                            item[lang] = superLimpiar(c[index]);
-                        }
-                    });
-                }
-                datosLocales.push(item);
+    // OJO: no añadir cabeceras manuales aquí (Cache-Control/Pragma): fuerzan un preflight
+    // CORS (OPTIONS) que el CSV publicado de Google Sheets/Apps Script no responde bien,
+    // y el navegador bloquea la petición real. "no-store" ya evita la caché del navegador.
+    const resp = await fetch(url + '&zx=' + Date.now(), {
+        cache: "no-store"
+    });
+    const text = await resp.text();
+
+    const filas = text.split(/\r?\n/).filter(f => f.trim() !== "");
+    const datos = [];
+
+    filas.forEach((f, i) => {
+        if (i === 0) return;
+        const c = f.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        const id = parseInt(c[0]);
+
+        if (!isNaN(id)) {
+            let item = {
+                id: id,
+                precio: c[1] || "0.00",
+                activa: (c[2] || "").trim().toUpperCase() === "SI",
+                carpeta: c[4] || "",
+                imagen: c[5] || "",
+                alergenos: superLimpiar(c[6]),
+                // NUEVO: posiciones desactivadas de "Opciones del plato" (ver languages.js).
+                opcionesInactivas: superLimpiar(c[window.IDX_OPCIONES_INACTIVAS] || ""),
+                // NUEVO (8 septiembre): precio opcional de "1/2 ración" (ver languages.js > IDX_PRECIO_MEDIA).
+                precioMedia: superLimpiar(c[window.IDX_PRECIO_MEDIA] || "")
+            };
+
+            if (window.IDIOMAS_ORDEN && window.IDIOMAS_CSV_INDICES) {
+                window.IDIOMAS_ORDEN.forEach(lang => {
+                    const index = window.IDIOMAS_CSV_INDICES[lang];
+                    if (index !== undefined && c[index] !== undefined) {
+                        item[lang] = superLimpiar(c[index]);
+                    }
+                });
             }
-        });
-        
+            datos.push(item);
+        }
+    });
+
+    return datos;
+}
+
+// NUEVO: caché en memoria por restaurante + de-duplicación de cargas en marcha. Antes, cada
+// cambio de pestaña (aunque fuera dentro del mismo restaurante, p.ej. de "1. Editor Carta RG"
+// a "2. Sugerencias RG") volvía a descargar el CSV entero y a pedir el estado de categorías,
+// aunque ya se hubieran cargado hace un instante. Ahora, si este modo ya está en caché se
+// devuelve directamente, y si ya hay una descarga en marcha para ese modo (venga de donde
+// venga la llamada) se espera esa misma en vez de lanzar una segunda en paralelo. Devuelve el
+// array de platos, o null si el modo no tiene URL de CSV configurada.
+async function cargarYCachearModo(modo) {
+    window.__datosLocalesCache = window.__datosLocalesCache || {};
+    window.__prefetchEnCurso = window.__prefetchEnCurso || {};
+
+    if (window.__datosLocalesCache[modo]) return window.__datosLocalesCache[modo];
+    if (window.__prefetchEnCurso[modo]) return window.__prefetchEnCurso[modo];
+
+    const promesa = (async () => {
+        const state = window.optimisticState[modo];
+        const timeSinceSave = Date.now() - state.t;
+        const isConsistencyZone = timeSinceSave < CONSISTENCY_WINDOW_MS;
+
+        console.log(`[Editor] Cargando datos para ${modo} (${getModoAlias(modo)})... (Zona de peligro: ${isConsistencyZone})`);
+
+        // NUEVO: el fetch + parseo del CSV vive en fetchYParsearDatos (ver esa función).
+        // Devuelve null si el modo no tiene URL configurada.
+        const datos = await fetchYParsearDatos(modo);
+        if (datos === null) return null;
+
         if (isConsistencyZone && state.s && state.s.length > 0) {
             let parchesAplicados = 0;
             state.s.forEach(savedItem => {
-                const loadedItem = datosLocales.find(i => i.id === savedItem.id);
+                const loadedItem = datos.find(i => i.id === savedItem.id);
                 if (loadedItem) {
                     if (JSON.stringify(loadedItem) !== JSON.stringify(savedItem)) {
                         console.warn(`[Editor] ⚠️ Inconsistencia detectada en ${modo} - ID ${savedItem.id}. Aplicando parche.`);
@@ -206,7 +238,73 @@ async function cargar(retryCount = 0) {
             }
         }
 
-        console.log(`[Editor] ${datosLocales.length} platos cargados (${modo}).`);
+        console.log(`[Editor] ${datos.length} platos cargados (${modo}).`);
+        window.__datosLocalesCache[modo] = datos;
+
+        // NUEVO: el estado de pestañas activas/inactivas se pide en paralelo, SIN esperarlo
+        // (ver cargarEstadoCategoriasEnSegundoPlano) — el menú ya puede pintarse con lo que
+        // trae el CSV aunque Apps Script tarde en responder (arranque en frío), y en cuanto
+        // llegue se corrige solo el estado de los interruptores, sin bloquear nada más.
+        cargarEstadoCategoriasEnSegundoPlano(modo);
+
+        return datos;
+    })();
+
+    window.__prefetchEnCurso[modo] = promesa;
+    try {
+        return await promesa;
+    } finally {
+        delete window.__prefetchEnCurso[modo];
+    }
+}
+
+// NUEVO: pide el estado real de pestañas/categorías activas-inactivas sin bloquear la
+// aparición del menú (ver el comentario en cargarYCachearModo). Cuando responde, si el
+// usuario sigue viendo ese mismo restaurante en este momento, se repinta el menú
+// (renderizar) para que los interruptores de cada categoría reflejen ya el estado real
+// guardado en Apps Script — el resto del menú no cambia con ese repintado.
+async function cargarEstadoCategoriasEnSegundoPlano(modo) {
+    await cargarEstadoCategorias(modo);
+    if (window.currentMode === modo && typeof renderizar === 'function') {
+        renderizar();
+    }
+}
+
+async function cargar(retryCount = 0, forzarRecarga = false) {
+    const modo = window.currentMode || 'restaurante001';
+
+    // NUEVO: Validar si el restaurante está habilitado antes de cargar
+    if (typeof isRestauranteA === 'function' && !isRestauranteA(modo)) {
+        const alias = getModoAlias(modo);
+        console.warn(`[Editor] ⛔️ Operación cancelada: El restaurante "${alias}" está deshabilitado.`);
+        const statusCarga = document.getElementById('status-carga');
+        if (statusCarga) {
+            statusCarga.innerText = `⛔ El restaurante "${alias}" está deshabilitado en la configuración.`;
+            statusCarga.className = "status-error";
+            statusCarga.style.display = "";
+        }
+        return;
+    }
+
+    // NUEVO: caché en memoria por restaurante (y de-duplicación de cargas en marcha — ver
+    // cargarYCachearModo). Si este modo ya se cargó una vez en esta sesión del navegador, se
+    // reutilizan esos datos directamente — son los mismos objetos que editan las funciones de
+    // guardado (push/splice sobre datosLocales), así que la caché ya refleja cualquier cambio
+    // hecho desde este editor. Lo único que NO recoge es un cambio hecho DIRECTAMENTE en la
+    // hoja de Google Sheets (por otra persona u otro dispositivo) mientras este restaurante ya
+    // estaba en caché aquí — para eso hay que recargar la página entera (F5), o pasar
+    // forzarRecarga=true para vaciar la caché de este modo antes de pedir los datos de nuevo.
+    window.__datosLocalesCache = window.__datosLocalesCache || {};
+    if (forzarRecarga) delete window.__datosLocalesCache[modo];
+
+    try {
+        if (typeof UI !== 'undefined' && typeof UI.log === 'function' && !window.__datosLocalesCache[modo]) {
+            UI.log(`[Editor] Conectando con Google Sheets remoto (${getModoAlias(modo)})...`);
+        }
+
+        const datos = await cargarYCachearModo(modo);
+        if (datos === null) return;
+        datosLocales = datos;
         window.datosLocales = datosLocales;
 
         const statusCarga = document.getElementById('status-carga');
@@ -216,20 +314,15 @@ async function cargar(retryCount = 0) {
             // (ver el catch de abajo) y para otros mensajes de estado (conectando, deshabilitado).
             statusCarga.style.display = "none";
         }
-        
-        // NUEVO: estado de pestañas activas/inactivas, ANTES de renderizar, para que el
-        // interruptor de cada cabecera de acordeón nazca ya con el estado real (si esto
-        // fallara, cargarEstadoCategorias ya deja el Set tal cual estaba y no bloquea nada).
-        await cargarEstadoCategorias(modo);
 
         window.hayCambiosSinGuardar = false;
         renderizar();
         generarMenuAgrupado();
-    } catch (e) { 
+    } catch (e) {
         console.error("[Editor] Error cargando:", e);
         const statusCarga = document.getElementById('status-carga');
         if (statusCarga) {
-            statusCarga.innerText = "❌ Error al cargar base multidireccional"; 
+            statusCarga.innerText = "❌ Error al cargar base multidireccional";
             statusCarga.className = "status-error";
             statusCarga.style.display = "";
         }
@@ -870,6 +963,9 @@ async function generarTraduccionEN() {
     const originalText = btn.innerText;
     btn.innerText = "🇬🇧 Generando opciones...";
     btn.disabled = true;
+    // NUEVO: rueda de carga a pantalla completa mientras se espera a Gemini -- este paso puede
+    // tardar bastante si hay que reintentar con varias claves (ver mostrarOverlayCarga arriba).
+    mostrarOverlayCarga("🇬🇧 Generando opciones de traducción...");
 
     const textoCompletoEs = construirTextoCompletoParaTraducir('es').replace(/"/g, "'");
     // Prompt centralizado en prompts.js (window.PROMPTS.opcionesEN)
@@ -912,17 +1008,19 @@ async function generarTraduccionEN() {
             ultimoError = err.message; 
             intentos++; 
         } 
-    } 
-    
-    if (exito) { 
-        abrirModalTraduccionEN(opciones); 
-    } else { 
-        alert("❌ Error al generar las opciones en Inglés.\nDetalles: " + ultimoError); 
-    } 
-    
-    btn.innerText = originalText; 
-    btn.disabled = false; 
-} 
+    }
+
+    ocultarOverlayCarga();
+
+    if (exito) {
+        abrirModalTraduccionEN(opciones);
+    } else {
+        alert("❌ Error al generar las opciones en Inglés.\nDetalles: " + ultimoError);
+    }
+
+    btn.innerText = originalText;
+    btn.disabled = false;
+}
 
 function abrirModalTraduccionEN(opciones) {
     const container = document.getElementById('opciones-en-container');
@@ -987,6 +1085,11 @@ async function ejecutarTraduccionAutomatica() {
     let keys = [];
     if (typeof getKeys === 'function') keys = getKeys();
     if (keys.length === 0) { alert("❌ No hay API Keys de Gemini configuradas."); btn.innerText = originalText; btn.disabled = false; return; }
+
+    // NUEVO: misma rueda de carga a pantalla completa que en generarTraduccionEN() -- esta
+    // llamada traduce a todos los demás idiomas de golpe y puede tardar bastante, sobre todo
+    // si hay que reintentar con varias claves por un 503 "modelo saturado" de Gemini.
+    mostrarOverlayCarga("✨ Traduciendo al resto de idiomas...");
 
     const textoCompletoEs = construirTextoCompletoParaTraducir('es').replace(/"/g, "'");
     const textoCompletoEn = construirTextoCompletoParaTraducir('en').replace(/"/g, "'");
@@ -1061,13 +1164,15 @@ async function ejecutarTraduccionAutomatica() {
         }
     }
 
+    ocultarOverlayCarga();
+
     if (!exito) {
         alert("❌ Error al traducir con Gemini.\nDetalles del error: " + ultimoError);
     }
-    
-    btn.innerText = originalText; 
-    btn.disabled = false; 
-} 
+
+    btn.innerText = originalText;
+    btn.disabled = false;
+}
 
 function aplicarCambiosPlato() {
     let p = esNuevoPlato ? datosTempNuevo : datosLocales.find(x => x.id === platoEditandoId);
